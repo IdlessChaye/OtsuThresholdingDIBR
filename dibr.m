@@ -6,11 +6,12 @@ function [C_V] = dibr(layer_number, Znear, Zfar, C_L_O, C_R_O, Z_L_O, Z_R_O, K_L
 %     Zfar = 0; % 视点最远距离，在数据集文件中设置
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-    is_show_image = false; % for debug
+    is_show_image = true; % for debug
     is_no_layered = layer_number == 1;
     if is_no_layered
         layer_number = 2;
     end
+    z_sign = Znear / abs(Znear);
 
     %% 算法参数
 
@@ -135,7 +136,7 @@ function [C_V] = dibr(layer_number, Znear, Zfar, C_L_O, C_R_O, Z_L_O, Z_R_O, K_L
 
             Z = zl(j);
             C = cl(:, j);
-            if Z <= 0
+            if Z * z_sign <= 0
                 continue;
             end
 
@@ -143,7 +144,7 @@ function [C_V] = dibr(layer_number, Znear, Zfar, C_L_O, C_R_O, Z_L_O, Z_R_O, K_L
                 Z_V_Ls{i}(v,u,:) = Z;
                 C_V_Ls{i}(v,u,:) = C;
             else
-                if Z_V_Ls{i}(v,u,:) > Z
+                if Z_V_Ls{i}(v,u,:) * z_sign > Z * z_sign 
                     Z_V_Ls{i}(v,u,:) = Z;
                     C_V_Ls{i}(v,u,:) = C;
                 end
@@ -161,7 +162,7 @@ function [C_V] = dibr(layer_number, Znear, Zfar, C_L_O, C_R_O, Z_L_O, Z_R_O, K_L
 
             Z = zr(j);
             C = cr(:, j);
-            if Z <= 0
+            if Z * z_sign <= 0
                 continue;
             end
 
@@ -169,7 +170,7 @@ function [C_V] = dibr(layer_number, Znear, Zfar, C_L_O, C_R_O, Z_L_O, Z_R_O, K_L
                 Z_V_Rs{i}(v,u,:) = Z;
                 C_V_Rs{i}(v,u,:) = C;
             else
-                if Z_V_Rs{i}(v,u,:) > Z
+                if Z_V_Rs{i}(v,u,:) * z_sign  > Z * z_sign 
                     Z_V_Rs{i}(v,u,:) = Z;
                     C_V_Rs{i}(v,u,:) = C;
                 end
@@ -182,13 +183,13 @@ function [C_V] = dibr(layer_number, Znear, Zfar, C_L_O, C_R_O, Z_L_O, Z_R_O, K_L
         %     figure;imshow(uint8(Z_V_Ls{k}));
         % end
         for k = 1 : layer_number
-            figure;imshow(uint8(linear2sRGB(C_V_Ls{k})));
+            figure;imshow(uint8(linear2sRGB(C_V_Ls{k}))); title(['左路',num2str(k) , '层映射后颜色']); drawnow;
         end
         % for k = 1 : layer_number
         %     figure;imshow(uint8(Z_V_Rs{k}));
         % end
         for k = 1 : layer_number
-            figure;imshow(uint8(linear2sRGB(C_V_Rs{k})));
+            figure;imshow(uint8(linear2sRGB(C_V_Rs{k}))); title(['右路',num2str(k) , '层映射后颜色']); drawnow;
         end
 
         show3Dpoints2image(v_points_L,Rt_V_O ,K_V_O ,linear2sRGB(C_L_O) ,H,W);
@@ -225,15 +226,15 @@ function [C_V] = dibr(layer_number, Znear, Zfar, C_L_O, C_R_O, Z_L_O, Z_R_O, K_L
                 zvr = Z_V_R(v,u,:);
                 cvl = C_V_L(v,u,:);
                 cvr = C_V_R(v,u,:);
-                if zvl <= 0 && zvr <= 0
+                if zvl * z_sign <= 0 && zvr * z_sign <= 0
                     continue;
-                elseif zvl > 0 && zvr == 0
+                elseif zvl * z_sign > 0 && zvr == 0
                     Z_Vs{i}(v,u,:) = zvl;
                     C_Vs{i}(v,u,:) = cvl;
-                elseif zvl == 0 && zvr > 0
+                elseif zvl == 0 && zvr * z_sign > 0
                     Z_Vs{i}(v,u,:) = zvr;
                     C_Vs{i}(v,u,:) = cvr;
-                elseif zvl > 0 && zvr > 0
+                elseif zvl * z_sign > 0 && zvr * z_sign > 0
 %                     delta_z = abs(zvl - zvr); % 像素深度权重
 %                     weight_far_dis = 0.5 * exp(-delta_z * factor_attenuation / layer_delta_dist);
 %                     weight_near_dis = 1 - weight_far_dis;
@@ -264,7 +265,7 @@ function [C_V] = dibr(layer_number, Znear, Zfar, C_L_O, C_R_O, Z_L_O, Z_R_O, K_L
         %     figure;imshow(Z_Vs{k});
         % end
         for k = 1 : layer_number
-            figure;imshow(uint8(linear2sRGB(C_Vs{k}))); title('各层融合'); drawnow;
+            figure;imshow(uint8(linear2sRGB(C_Vs{k}))); title([num2str(k),'层融合']); drawnow;
         end
     end
 
@@ -273,7 +274,7 @@ function [C_V] = dibr(layer_number, Znear, Zfar, C_L_O, C_R_O, Z_L_O, Z_R_O, K_L
     Z_V_inpaints = cell([1, layer_number]); 
     C_V_inpaints = cell([1, layer_number]); 
 
-    % 开关深度中值滤波 仍需要解决伪影问题以及部分高频颜色的干扰问题
+    % 筛选中值滤波
     w_select_radius = 5;
     w_calc_radius = 2;
     for i = 1 : layer_number
@@ -290,7 +291,7 @@ function [C_V] = dibr(layer_number, Znear, Zfar, C_L_O, C_R_O, Z_L_O, Z_R_O, K_L
         %     figure;imshow(Z_V_inpaints{k});
         % end
         for k = 1 : layer_number
-            figure;imshow(uint8(linear2sRGB(C_V_inpaints{k}))); title('层内中值滤波'); drawnow;
+            figure;imshow(uint8(linear2sRGB(C_V_inpaints{k}))); title([num2str(k),'层筛选中值滤波']); drawnow;
         end
     end
 
@@ -315,31 +316,32 @@ function [C_V] = dibr(layer_number, Znear, Zfar, C_L_O, C_R_O, Z_L_O, Z_R_O, K_L
     end
 
     if is_show_image
-        figure;imshow(Z_V_overlay);
-        figure;imshow(uint8(linear2sRGB(C_V_overlay)));
+        figure;imshow(Z_V_overlay); title('叠加深度图'); drawnow;
+        figure;imshow(uint8(linear2sRGB(C_V_overlay))); title('叠加颜色图'); drawnow;
     end
 
     %% 对新视点的颜色图进行中值滤波和图像填补
 
     % 中值滤波
     w_radius = 2;
-%     [C_V_inpaint_median, Z_V_inpaint_median] = getColorDepthMedianFilter(C_V_overlay, Z_V_overlay, w_radius);
     C_V_inpaint_median = cat(3,medfilt2(C_V_overlay(:,:,1),[2 * w_radius + 1, 2 * w_radius + 1]),medfilt2(C_V_overlay(:,:,2),[2 * w_radius + 1, 2 * w_radius + 1]),medfilt2(C_V_overlay(:,:,3),[2 * w_radius + 1, 2 * w_radius + 1]));
-    Z_V_inpaint_median = medfilt2(Z_V_overlay(:,:,1),[2 * w_radius + 1, 2 * w_radius + 1]);
+%     Z_V_inpaint_median = medfilt2(Z_V_overlay(:,:,1),[2 * w_radius + 1, 2 * w_radius + 1]);
 
     if is_show_image
         % figure;imshow(Z_V_inpaint_median);
-        figure;imshow(uint8(linear2sRGB(C_V_inpaint_median)));
+        figure;imshow(uint8(linear2sRGB(C_V_inpaint_median))); title('叠加中值滤波图'); drawnow;
     end
 
     
     % 图像填补
-    C_V_inpaint_hole = C_V_inpaint_median;
-
     % 背景图像
     Z_V_background = zeros(H, W, 1);
     C_V_background = zeros(H, W, 3);
-    for i = 2 : layer_number % 排除前景
+    i_iter = 2 : layer_number;
+    if z_sign < 0
+        i_iter = layer_number - 1 : -1 : 1;
+    end
+    for i = i_iter % 排除前景
         for u = 1 : W
             for v = 1 : H
                 z = Z_V_inpaints{i}(v,u,1);
@@ -356,31 +358,32 @@ function [C_V] = dibr(layer_number, Znear, Zfar, C_L_O, C_R_O, Z_L_O, Z_R_O, K_L
 
     if is_show_image
         % figure;imshow(Z_V_background);
-        figure;imshow(uint8(linear2sRGB(C_V_background)));
+        figure;imshow(uint8(linear2sRGB(C_V_background))); title('叠加背景图'); drawnow;
     end
     
     % 如果点不在视点边缘，假设造成空洞的原因是因为前景遮挡，根据背景图像进行图像填补
     % 如果点在视点边缘，假设造成空洞的原因是因为视点边缘信息缺失，根据叠加图像进行图像填补
-    for i = 1 : H
-        for j = 1 : W
-            z = Z_V_inpaint_median(i,j);
-            if z ~= 0
-                continue;
-            end
-
-            c_pixel = getColorPixelInpaintHole(C_V_inpaint_median, C_V_background, i, j);
-            C_V_inpaint_hole(i,j,:) = c_pixel;
-        end
-    end
+    
+%     C_V_inpaint_hole = C_V_inpaint_median;
+%     for i = 1 : H
+%         for j = 1 : W
+%             if sum(C_V_inpaint_median(i,j,:)) ~= 0
+%                 continue;
+%             end
+% 
+%             c_pixel = getColorPixelInpaintHole(C_V_inpaint_median, C_V_background, i, j);
+%             C_V_inpaint_hole(i,j,:) = c_pixel;
+%         end
+%     end
+    
+    C_V_inpaint_hole = getColorPixelInpaintHole2(C_V_inpaint_median, C_V_background);
 
     if is_show_image
-        figure;imshow(uint8(linear2sRGB(C_V_inpaint_median)));
-        figure;imshow(uint8(linear2sRGB(C_V_inpaint_hole)));
+        figure;imshow(uint8(linear2sRGB(C_V_inpaint_hole))); title('叠加图像填补图'); drawnow;
     end
 
     %% gamma矫正 没用
 
-%     C_V = uint8(linear2sRGB(C_V_inpaint_hole));
     C_V = uint8(C_V_inpaint_hole);
 
 end

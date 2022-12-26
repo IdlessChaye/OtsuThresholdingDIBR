@@ -23,4 +23,6 @@ end
 
 figure;
 imshow(image);
+title('整个路在新视点的颜色图');
+drawnow;
 end
