@@ -229,33 +229,25 @@ function [C_V] = dibr(layer_number, Znear, Zfar, C_L_O, C_R_O, Z_L_O, Z_R_O, K_L
                 cvr = C_V_R(v,u,:);
                 if zvl * z_sign <= 0 && zvr * z_sign <= 0
                     continue;
-                elseif zvl * z_sign > 0 && zvr == 0
+                elseif zvl * z_sign > 0 && zvr * z_sign <= 0
                     Z_Vs{i}(v,u,:) = zvl;
                     C_Vs{i}(v,u,:) = cvl;
-                elseif zvl == 0 && zvr * z_sign > 0
+                elseif zvl * z_sign <= 0 && zvr * z_sign > 0
                     Z_Vs{i}(v,u,:) = zvr;
                     C_Vs{i}(v,u,:) = cvr;
                 elseif zvl * z_sign > 0 && zvr * z_sign > 0
-%                     delta_z = abs(zvl - zvr); % 像素深度权重
-%                     weight_far_dis = 0.5 * exp(-delta_z * factor_attenuation / layer_delta_dist);
-%                     weight_near_dis = 1 - weight_far_dis;
-%                     if zvl < zvr
-%                         weight_n = weight_dis_L * weight_near_dis; % 最终权重=视点位移权重*像素深度权重
-%                         weight_f = weight_dis_R * weight_far_dis;
-%                         weight_near = weight_n / (weight_n + weight_f);
-%                         weight_far = weight_f / (weight_n + weight_f);
-%                         Z_Vs{i}(v,u,:) = zvl;
-%                         C_Vs{i}(v,u,:) = weight_near * cvl + weight_far * cvr;
-%                     elseif zvl >= zvr
-%                         weight_n = weight_dis_R * weight_near_dis;
-%                         weight_f = weight_dis_L * weight_far_dis;
-%                         weight_near = weight_n / (weight_n + weight_f);
-%                         weight_far = weight_f / (weight_n + weight_f);
-%                         Z_Vs{i}(v,u,:) = zvr;
-%                         C_Vs{i}(v,u,:) = weight_near * cvr + weight_far * cvl;
-%                     end
-                    Z_Vs{i}(v,u,:) = weight_dis_R * zvr + weight_dis_L * zvl;
-                    C_Vs{i}(v,u,:) = weight_dis_R * cvr + weight_dis_L * cvl;
+                    sum_cvr = sum(cvr);
+                    sum_cvl = sum(cvl);
+                    if sum_cvr ~= 0 && sum_cvl ~= 0
+                        Z_Vs{i}(v,u,:) = weight_dis_R * zvr + weight_dis_L * zvl;
+                        C_Vs{i}(v,u,:) = weight_dis_R * cvr + weight_dis_L * cvl;
+                    elseif sum_cvr ~= 0
+                        Z_Vs{i}(v,u,:) = zvr;
+                        C_Vs{i}(v,u,:) = cvr;
+                    elseif sum_cvl ~= 0
+                        Z_Vs{i}(v,u,:) = zvl;
+                        C_Vs{i}(v,u,:) = cvl;
+                    end
                 end
             end
         end
@@ -389,7 +381,7 @@ function [C_V] = dibr(layer_number, Znear, Zfar, C_L_O, C_R_O, Z_L_O, Z_R_O, K_L
 
     %% gamma矫正 没用
 
-%     Z_V = uint8(Z_V_inpaint_hole);
+%     Z_V = double(Z_V_inpaint_hole);
     C_V = uint8(C_V_inpaint_hole);
 
 end
