@@ -7,11 +7,12 @@ function [C_V] = dibr(layer_number, Znear, Zfar, C_L_O, C_R_O, Z_L_O, Z_R_O, K_L
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
     is_show_image = true; % for debug
-    is_no_layered = layer_number == 1;
+    
+    is_no_layered = layer_number == 1; % hack
     if is_no_layered
         layer_number = 2;
     end
-    z_sign = Znear / abs(Znear);
+    z_sign = Znear / abs(Znear); % hack
 
     %% 算法参数
 
@@ -334,32 +335,32 @@ function [C_V] = dibr(layer_number, Znear, Zfar, C_L_O, C_R_O, Z_L_O, Z_R_O, K_L
 
     
     % 图像填补
-    % 背景图像
-    Z_V_background = zeros(H, W, 1);
-    C_V_background = zeros(H, W, 3);
-    i_iter = 2 : layer_number;
-    if z_sign < 0
-        i_iter = layer_number - 1 : -1 : 1;
-    end
-    for i = i_iter % 排除前景
-        for u = 1 : W
-            for v = 1 : H
-                z = Z_V_inpaints{i}(v,u,1);
-                if z == 0
-                    continue;
-                end
-                if Z_V_background(v, u, 1) == 0
-                    Z_V_background(v,u,1) = z;
-                    C_V_background(v,u,:) = C_V_inpaints{i}(v,u,:);
-                end
-            end
-        end
-    end
-
-    if is_show_image
-        % figure;imshow(Z_V_background);
-        figure;imshow(uint8(linear2sRGB(C_V_background))); title('叠加背景图'); drawnow;
-    end
+%     % 背景图像
+%     Z_V_background = zeros(H, W, 1);
+%     C_V_background = zeros(H, W, 3);
+%     i_iter = 2 : layer_number;
+%     if z_sign < 0
+%         i_iter = layer_number - 1 : -1 : 1;
+%     end
+%     for i = i_iter % 排除前景
+%         for u = 1 : W
+%             for v = 1 : H
+%                 z = Z_V_inpaints{i}(v,u,1);
+%                 if z == 0
+%                     continue;
+%                 end
+%                 if Z_V_background(v, u, 1) == 0
+%                     Z_V_background(v,u,1) = z;
+%                     C_V_background(v,u,:) = C_V_inpaints{i}(v,u,:);
+%                 end
+%             end
+%         end
+%     end
+% 
+%     if is_show_image
+%         % figure;imshow(Z_V_background);
+%         figure;imshow(uint8(linear2sRGB(C_V_background))); title('叠加背景图'); drawnow;
+%     end
     
     % 如果点不在视点边缘，假设造成空洞的原因是因为前景遮挡，根据背景图像进行图像填补
     % 如果点在视点边缘，假设造成空洞的原因是因为视点边缘信息缺失，根据叠加图像进行图像填补
@@ -376,7 +377,11 @@ function [C_V] = dibr(layer_number, Znear, Zfar, C_L_O, C_R_O, Z_L_O, Z_R_O, K_L
 %         end
 %     end
     
-    C_V_inpaint_hole = getColorPixelInpaintHole2(C_V_inpaint_median, C_V_background);
+%     C_V_inpaint_hole = getColorPixelInpaintHole2(C_V_inpaint_median, C_V_background);
+    
+%     Z_V_inpaint_hole = getDepthPixelInpaintHole3(Z_V_inpaint_median);
+    C_V_inpaint_hole = getColorPixelInpaintHole3(C_V_inpaint_median);
+    
 
     if is_show_image
         figure;imshow(uint8(linear2sRGB(C_V_inpaint_hole))); title('叠加图像填补图'); drawnow;
@@ -384,6 +389,7 @@ function [C_V] = dibr(layer_number, Znear, Zfar, C_L_O, C_R_O, Z_L_O, Z_R_O, K_L
 
     %% gamma矫正 没用
 
+%     Z_V = uint8(Z_V_inpaint_hole);
     C_V = uint8(C_V_inpaint_hole);
 
 end

@@ -10,14 +10,14 @@ layer_number = 3; % 分层数
 Zfar = 0; % 视点最远距离，在数据集文件中设置
 Znear = 0; % 视点最近距离，在数据集文件中设置
 
-% LoadBallet; % 数据集，Ballet
-% % LoadBreakdancers; % 数据集，Breakdancers
-% frame = 0;
-% cam_L = 3;
-% cam_R = 5;
-% cam_V = 4;
-% LoadBalletData;
-% % LoadBreakdancersData;
+LoadBallet; % 数据集，Ballet
+% LoadBreakdancers; % 数据集，Breakdancers
+frame = 0;
+cam_L = 3;
+cam_R = 5;
+cam_V = 4;
+LoadBalletData;
+% LoadBreakdancersData;
 
 % LoadKendo;
 % frame = 1;
