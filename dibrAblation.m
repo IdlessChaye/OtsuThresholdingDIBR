@@ -7,6 +7,8 @@ function [C_V] = dibrAblation(layer_number, Znear, Zfar, C_L_O, C_R_O, Z_L_O, Z_
 %     Zfar = 0; % 视点最远距离，在数据集文件中设置
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+    t1 = clock; % dibr
+
     is_show_image = false; % for debug
     
     has_refinement = true;
@@ -45,6 +47,7 @@ function [C_V] = dibrAblation(layer_number, Znear, Zfar, C_L_O, C_R_O, Z_L_O, Z_
         [Z_R_O, C_R_O] = getDepthColorRefinement(Z_R_O, C_R_O);
     end
     
+    disp('refinement time:');
     toc; % refinement
 
     %% 亮度矫正
@@ -60,7 +63,8 @@ function [C_V] = dibrAblation(layer_number, Znear, Zfar, C_L_O, C_R_O, Z_L_O, Z_
         hsv_L_O(:,:,3) = hsv_L_O(:,:,3) ./ light_L_O .* light_R_O;
         C_L_O = hsv2rgb(hsv_L_O);
     end
-
+    
+    disp('HSV time:');
     toc; % HSV
 
     %% 获取双路原视点的深度分层阈值 分层，但效果不明显，只是理论上可以将前后景的物体分层
@@ -294,6 +298,8 @@ function [C_V] = dibrAblation(layer_number, Znear, Zfar, C_L_O, C_R_O, Z_L_O, Z_
 
     %% 对各层融合得到的深度图和颜色图分别进行层内中值滤波
 
+	t5 = clock; % select median
+        
     Z_V_inpaints = cell([1, layer_number]); 
     C_V_inpaints = cell([1, layer_number]); 
 
@@ -317,6 +323,9 @@ function [C_V] = dibrAblation(layer_number, Znear, Zfar, C_L_O, C_R_O, Z_L_O, Z_
             figure;imshow(uint8(linear2sRGB(C_V_inpaints{k}))); title([num2str(k),'层筛选中值滤波']); drawnow;
         end
     end
+    
+	t6 = clock; % select median
+    fprintf('select median time:\n%f 秒。\n', etime(t6,t5));
 
     %% 分层叠加得到新视点的图
 
@@ -343,11 +352,14 @@ function [C_V] = dibrAblation(layer_number, Znear, Zfar, C_L_O, C_R_O, Z_L_O, Z_
         figure;imshow(uint8(linear2sRGB(C_V_overlay))); title('叠加颜色图'); drawnow;
     end
     
+    disp('all layered time:');
     toc; % layered
 
     %% 对新视点的颜色图进行中值滤波和图像填补
 
-    tic; % inpainting
+    t3 = clock; % inpainting
+    
+    tic; % median inpainting
     
     % 中值滤波
     w_radius = 2;
@@ -363,6 +375,10 @@ function [C_V] = dibrAblation(layer_number, Znear, Zfar, C_L_O, C_R_O, Z_L_O, Z_
         figure;imshow(uint8(linear2sRGB(C_V_inpaint_median))); title('叠加中值滤波图'); drawnow;
     end
 
+    disp('median inpainting time:');
+    toc; % median inpainting
+    
+    tic; % hole inpainting
     
     % 图像填补
     % 如果点不在视点边缘，假设造成空洞的原因是因为前景遮挡，根据背景图像进行图像填补
@@ -394,11 +410,18 @@ function [C_V] = dibrAblation(layer_number, Znear, Zfar, C_L_O, C_R_O, Z_L_O, Z_
         figure;imshow(uint8(linear2sRGB(C_V_inpaint_hole))); title('叠加图像填补图'); drawnow;
     end
 
-    toc; % inpainting
+    disp('hole inpainting time:');
+    toc; % hole inpainting
+    
+    t4 = clock; % inpainting
+    fprintf('all inpainting time:\n%f 秒。\n', etime(t4,t3));
     
     %% output
 
 %     Z_V = double(Z_V_inpaint_hole);
     C_V = uint8(C_V_inpaint_hole);
+    
+    t2 = clock; % dibr
+    fprintf('all dibr time:\n%f 秒。\n', etime(t2,t1));
 
 end
