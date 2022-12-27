@@ -1,47 +1,80 @@
-function [C_V] = dibrAblationPretreatmentAdaptedLayeredMedian(layer_number, Znear, Zfar, C_L_O, C_R_O, Z_L_O, Z_R_O, K_L_O, K_R_O, K_V_O, Rt_L_O, Rt_R_O, Rt_V_O)
+function [C_V] = dibrAblation(layer_number, Znear, Zfar, C_L_O, C_R_O, Z_L_O, Z_R_O, K_L_O, K_R_O, K_V_O, Rt_L_O, Rt_R_O, Rt_V_O, is_dibr_do_refinement, ablation_switch)
 %     DIBR
 %
+%     is_dibr_do_refinement = true; % if not pre-treatment depth map and color map, set true
 %     layer_number = 3; % 分层数
 %     Znear = 0; % 视点最近距离，在数据集文件中设置
 %     Zfar = 0; % 视点最远距离，在数据集文件中设置
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
     is_show_image = false; % for debug
-    is_no_layered = layer_number == 1;
+    
+    has_refinement = true;
+    has_HSV = true;
+    has_layered = true;
+    has_inpainting = true;
+    if ablation_switch(1) == true
+        has_refinement = false;
+    end
+    if ablation_switch(2) == true
+        has_HSV = false;
+    end
+    if ablation_switch(3) == true
+        has_layered = false;
+    end
+    if ablation_switch(4) == true
+        has_inpainting = false;
+    end
+    
+    is_no_layered = layer_number == 1 || has_layered == false; % hack
     if is_no_layered
         layer_number = 2;
     end
-
+    z_sign = Znear / abs(Znear); % hack
+    
     %% 算法参数
-
-%     factor_attenuation = 6; % 融合方程，指数衰减系数
-%     ratio_max_delta_dis = 1; % 融合方程，自适应最大深度差阈值的区间缩放百分比
     
     [H,W,~] = size(C_L_O);
-
-    %% 亮度矫正 % + gamma矫正
     
-%     % 亮度矫正
-%     hsv_L_O = rgb2hsv(C_L_O);
-%     hsv_R_O = rgb2hsv(C_R_O);
-%     light_L_O = sum(sum(hsv_L_O(:,:,3))) / H / W;
-%     light_R_O = sum(sum(hsv_R_O(:,:,3))) / H / W;
-%     hsv_L_O(:,:,3) = hsv_L_O(:,:,3) ./ light_L_O .* light_R_O;
-%     C_L_O = hsv2rgb(hsv_L_O);
-% 
-% %     % gamma矫正
-% %     C_L_O = sRGB2linear(C_L_O);
-% %     C_R_O = sRGB2linear(C_R_O);
+	%% 深度细化 像素矫正
+    
+    tic; % refinement
+    
+    if is_dibr_do_refinement == true
+        if has_refinement
+            [Z_L_O, C_L_O] = getDepthColorRefinement(Z_L_O, C_L_O);
+            [Z_R_O, C_R_O] = getDepthColorRefinement(Z_R_O, C_R_O);
+        end
+    end
+    
+    toc; % refinement
 
-    %% 获取双路原视点的深度分层阈值
+    %% 亮度矫正
+    
+    tic; % HSV
+    
+    % 亮度矫正 消除鬼影 提升psnr
+    if has_HSV
+        hsv_L_O = rgb2hsv(C_L_O);
+        hsv_R_O = rgb2hsv(C_R_O);
+        light_L_O = sum(sum(hsv_L_O(:,:,3))) / H / W;
+        light_R_O = sum(sum(hsv_R_O(:,:,3))) / H / W;
+        hsv_L_O(:,:,3) = hsv_L_O(:,:,3) ./ light_L_O .* light_R_O;
+        C_L_O = hsv2rgb(hsv_L_O);
+    end
 
-%     layer_thresh_L = multithresh(Z_L_O, layer_number - 1);
-%     layer_thresh_R = multithresh(Z_R_O, layer_number - 1);
+    toc; % HSV
+
+    %% 获取双路原视点的深度分层阈值 分层，但效果不明显，只是理论上可以将前后景的物体分层
+
+    tic; % layered
+    
+    layer_thresh_L = multithresh(Z_L_O, layer_number - 1);
+    layer_thresh_R = multithresh(Z_R_O, layer_number - 1);
 
     %% 计算新视点的深度分层阈值
 
-%     layer_thresh_mean = (layer_thresh_L + layer_thresh_R) / 2;
-    layer_thresh_mean = Znear:(Zfar-Znear) / layer_number:Zfar;
+    layer_thresh_mean = (layer_thresh_L + layer_thresh_R) / 2;
 
     %% 双路前向映射，并按照新视点的深度分层阈值来分层
 
@@ -136,7 +169,7 @@ function [C_V] = dibrAblationPretreatmentAdaptedLayeredMedian(layer_number, Znea
 
             Z = zl(j);
             C = cl(:, j);
-            if Z <= 0
+            if Z * z_sign <= 0
                 continue;
             end
 
@@ -144,7 +177,7 @@ function [C_V] = dibrAblationPretreatmentAdaptedLayeredMedian(layer_number, Znea
                 Z_V_Ls{i}(v,u,:) = Z;
                 C_V_Ls{i}(v,u,:) = C;
             else
-                if Z_V_Ls{i}(v,u,:) > Z
+                if Z_V_Ls{i}(v,u,:) * z_sign > Z * z_sign 
                     Z_V_Ls{i}(v,u,:) = Z;
                     C_V_Ls{i}(v,u,:) = C;
                 end
@@ -162,7 +195,7 @@ function [C_V] = dibrAblationPretreatmentAdaptedLayeredMedian(layer_number, Znea
 
             Z = zr(j);
             C = cr(:, j);
-            if Z <= 0
+            if Z * z_sign <= 0
                 continue;
             end
 
@@ -170,7 +203,7 @@ function [C_V] = dibrAblationPretreatmentAdaptedLayeredMedian(layer_number, Znea
                 Z_V_Rs{i}(v,u,:) = Z;
                 C_V_Rs{i}(v,u,:) = C;
             else
-                if Z_V_Rs{i}(v,u,:) > Z
+                if Z_V_Rs{i}(v,u,:) * z_sign  > Z * z_sign 
                     Z_V_Rs{i}(v,u,:) = Z;
                     C_V_Rs{i}(v,u,:) = C;
                 end
@@ -183,13 +216,13 @@ function [C_V] = dibrAblationPretreatmentAdaptedLayeredMedian(layer_number, Znea
         %     figure;imshow(uint8(Z_V_Ls{k}));
         % end
         for k = 1 : layer_number
-            figure;imshow(uint8(linear2sRGB(C_V_Ls{k})));
+            figure;imshow(uint8(linear2sRGB(C_V_Ls{k}))); title(['左路',num2str(k) , '层映射后颜色']); drawnow;
         end
         % for k = 1 : layer_number
         %     figure;imshow(uint8(Z_V_Rs{k}));
         % end
         for k = 1 : layer_number
-            figure;imshow(uint8(linear2sRGB(C_V_Rs{k})));
+            figure;imshow(uint8(linear2sRGB(C_V_Rs{k}))); title(['右路',num2str(k) , '层映射后颜色']); drawnow;
         end
 
         show3Dpoints2image(v_points_L,Rt_V_O ,K_V_O ,linear2sRGB(C_L_O) ,H,W);
@@ -204,7 +237,7 @@ function [C_V] = dibrAblationPretreatmentAdaptedLayeredMedian(layer_number, Znea
     for i = 1 : layer_number - 2
         layer_delta_dists(i + 1) = layer_thresh_mean(i + 1) - layer_thresh_mean(i);
     end
-    [weight_dis_L, weight_dis_R] = getWeightViewpointDis(Rt_V_O, Rt_L_O, Rt_R_O); % 视点位移权重
+    [weight_dis_L, weight_dis_R] = getWeightViewpointDis(Rt_V_O, Rt_L_O, Rt_R_O); % 视点位移权重 融合算法直接引用其他论文
     Z_Vs = cell([1, layer_number]); 
     C_Vs = cell([1, layer_number]); 
 
@@ -226,35 +259,27 @@ function [C_V] = dibrAblationPretreatmentAdaptedLayeredMedian(layer_number, Znea
                 zvr = Z_V_R(v,u,:);
                 cvl = C_V_L(v,u,:);
                 cvr = C_V_R(v,u,:);
-                if zvl <= 0 && zvr <= 0
+                if zvl * z_sign <= 0 && zvr * z_sign <= 0
                     continue;
-                elseif zvl > 0 && zvr == 0
+                elseif zvl * z_sign > 0 && zvr * z_sign <= 0
                     Z_Vs{i}(v,u,:) = zvl;
                     C_Vs{i}(v,u,:) = cvl;
-                elseif zvl == 0 && zvr > 0
+                elseif zvl * z_sign <= 0 && zvr * z_sign > 0
                     Z_Vs{i}(v,u,:) = zvr;
                     C_Vs{i}(v,u,:) = cvr;
-                elseif zvl > 0 && zvr > 0
-%                     delta_z = abs(zvl - zvr); % 像素深度权重
-%                     weight_far_dis = 0.5 * exp(-delta_z * factor_attenuation / layer_delta_dist);
-%                     weight_near_dis = 1 - weight_far_dis;
-%                     if zvl < zvr
-%                         weight_n = weight_dis_L * weight_near_dis; % 最终权重=视点位移权重*像素深度权重
-%                         weight_f = weight_dis_R * weight_far_dis;
-%                         weight_near = weight_n / (weight_n + weight_f);
-%                         weight_far = weight_f / (weight_n + weight_f);
-%                         Z_Vs{i}(v,u,:) = zvl;
-%                         C_Vs{i}(v,u,:) = weight_near * cvl + weight_far * cvr;
-%                     elseif zvl >= zvr
-%                         weight_n = weight_dis_R * weight_near_dis;
-%                         weight_f = weight_dis_L * weight_far_dis;
-%                         weight_near = weight_n / (weight_n + weight_f);
-%                         weight_far = weight_f / (weight_n + weight_f);
-%                         Z_Vs{i}(v,u,:) = zvr;
-%                         C_Vs{i}(v,u,:) = weight_near * cvr + weight_far * cvl;
-%                     end
-                    Z_Vs{i}(v,u,:) = weight_dis_R * zvr + weight_dis_L * zvl;
-                    C_Vs{i}(v,u,:) = weight_dis_R * cvr + weight_dis_L * cvl;
+                elseif zvl * z_sign > 0 && zvr * z_sign > 0
+                    sum_cvr = sum(cvr);
+                    sum_cvl = sum(cvl);
+                    if sum_cvr ~= 0 && sum_cvl ~= 0
+                        Z_Vs{i}(v,u,:) = weight_dis_R * zvr + weight_dis_L * zvl;
+                        C_Vs{i}(v,u,:) = weight_dis_R * cvr + weight_dis_L * cvl;
+                    elseif sum_cvr ~= 0
+                        Z_Vs{i}(v,u,:) = zvr;
+                        C_Vs{i}(v,u,:) = cvr;
+                    elseif sum_cvl ~= 0
+                        Z_Vs{i}(v,u,:) = zvl;
+                        C_Vs{i}(v,u,:) = cvl;
+                    end
                 end
             end
         end
@@ -265,7 +290,7 @@ function [C_V] = dibrAblationPretreatmentAdaptedLayeredMedian(layer_number, Znea
         %     figure;imshow(Z_Vs{k});
         % end
         for k = 1 : layer_number
-            figure;imshow(uint8(linear2sRGB(C_Vs{k})));
+            figure;imshow(uint8(linear2sRGB(C_Vs{k}))); title([num2str(k),'层融合']); drawnow;
         end
     end
 
@@ -274,7 +299,7 @@ function [C_V] = dibrAblationPretreatmentAdaptedLayeredMedian(layer_number, Znea
     Z_V_inpaints = cell([1, layer_number]); 
     C_V_inpaints = cell([1, layer_number]); 
 
-    % 开关深度中值滤波 仍需要解决伪影问题以及部分高频颜色的干扰问题
+    % 筛选中值滤波
     w_select_radius = 5;
     w_calc_radius = 2;
     for i = 1 : layer_number
@@ -291,7 +316,7 @@ function [C_V] = dibrAblationPretreatmentAdaptedLayeredMedian(layer_number, Znea
         %     figure;imshow(Z_V_inpaints{k});
         % end
         for k = 1 : layer_number
-            figure;imshow(uint8(linear2sRGB(C_V_inpaints{k}))); title('层内中值滤波'); drawnow;
+            figure;imshow(uint8(linear2sRGB(C_V_inpaints{k}))); title([num2str(k),'层筛选中值滤波']); drawnow;
         end
     end
 
@@ -316,73 +341,66 @@ function [C_V] = dibrAblationPretreatmentAdaptedLayeredMedian(layer_number, Znea
     end
 
     if is_show_image
-        figure;imshow(Z_V_overlay);
-        figure;imshow(uint8(linear2sRGB(C_V_overlay)));
+        figure;imshow(Z_V_overlay); title('叠加深度图'); drawnow;
+        figure;imshow(uint8(linear2sRGB(C_V_overlay))); title('叠加颜色图'); drawnow;
     end
+    
+    toc; % layered
 
-    %% 对新视点的颜色图进行深度中值滤波和图像填补
+    %% 对新视点的颜色图进行中值滤波和图像填补
 
-    % 深度中值滤波
+    tic; % inpainting
+    
+    % 中值滤波
     w_radius = 2;
-%     [C_V_inpaint_median, Z_V_inpaint_median] = getColorDepthMedianFilter(C_V_overlay, Z_V_overlay, w_radius);
-    C_V_inpaint_median = cat(3,medfilt2(C_V_overlay(:,:,1),[2 * w_radius + 1, 2 * w_radius + 1]),medfilt2(C_V_overlay(:,:,2),[2 * w_radius + 1, 2 * w_radius + 1]),medfilt2(C_V_overlay(:,:,3),[2 * w_radius + 1, 2 * w_radius + 1]));
-    Z_V_inpaint_median = medfilt2(Z_V_overlay(:,:,1),[2 * w_radius + 1, 2 * w_radius + 1]);
+    if has_inpainting
+        C_V_inpaint_median = cat(3,medfilt2(C_V_overlay(:,:,1),[2 * w_radius + 1, 2 * w_radius + 1]),medfilt2(C_V_overlay(:,:,2),[2 * w_radius + 1, 2 * w_radius + 1]),medfilt2(C_V_overlay(:,:,3),[2 * w_radius + 1, 2 * w_radius + 1]));
+%         Z_V_inpaint_median = medfilt2(Z_V_overlay(:,:,1),[2 * w_radius + 1, 2 * w_radius + 1]);
+    else
+        C_V_inpaint_median = C_V_overlay;
+    end
 
     if is_show_image
         % figure;imshow(Z_V_inpaint_median);
-        figure;imshow(uint8(linear2sRGB(C_V_inpaint_median)));
+        figure;imshow(uint8(linear2sRGB(C_V_inpaint_median))); title('叠加中值滤波图'); drawnow;
     end
 
     
     % 图像填补
-    C_V_inpaint_hole = C_V_inpaint_median;
-
-    % 背景图像
-    Z_V_background = zeros(H, W, 1);
-    C_V_background = zeros(H, W, 3);
-    for i = 2 : layer_number % 排除前景
-        for u = 1 : W
-            for v = 1 : H
-                z = Z_V_inpaints{i}(v,u,1);
-                if z == 0
-                    continue;
-                end
-                if Z_V_background(v, u, 1) == 0
-                    Z_V_background(v,u,1) = z;
-                    C_V_background(v,u,:) = C_V_inpaints{i}(v,u,:);
-                end
-            end
-        end
-    end
-
-    if is_show_image
-        % figure;imshow(Z_V_background);
-        figure;imshow(uint8(linear2sRGB(C_V_background)));
-    end
-    
-    
     % 如果点不在视点边缘，假设造成空洞的原因是因为前景遮挡，根据背景图像进行图像填补
     % 如果点在视点边缘，假设造成空洞的原因是因为视点边缘信息缺失，根据叠加图像进行图像填补
-    for i = 1 : H
-        for j = 1 : W
-            z = Z_V_inpaint_median(i,j);
-            if z ~= 0
-                continue;
-            end
-
-            c_pixel = getColorPixelInpaintHole(C_V_inpaint_median, C_V_background, i, j);
-            C_V_inpaint_hole(i,j,:) = c_pixel;
-        end
+    
+%     C_V_inpaint_hole = C_V_inpaint_median;
+%     for i = 1 : H
+%         for j = 1 : W
+%             if sum(C_V_inpaint_median(i,j,:)) ~= 0
+%                 continue;
+%             end
+% 
+%             c_pixel = getColorPixelInpaintHole(C_V_inpaint_median, C_V_background, i, j);
+%             C_V_inpaint_hole(i,j,:) = c_pixel;
+%         end
+%     end
+    
+%     C_V_inpaint_hole = getColorPixelInpaintHole2(C_V_inpaint_median, C_V_background);
+    
+    if has_inpainting
+%         Z_V_inpaint_hole = getDepthPixelInpaintHole3(Z_V_inpaint_median);
+        C_V_inpaint_hole = getColorPixelInpaintHole3(C_V_inpaint_median);
+    else
+        C_V_inpaint_hole = C_V_inpaint_median;
     end
+    
 
     if is_show_image
-        figure;imshow(uint8(linear2sRGB(C_V_inpaint_median)));
-        figure;imshow(uint8(linear2sRGB(C_V_inpaint_hole)));
+        figure;imshow(uint8(linear2sRGB(C_V_inpaint_hole))); title('叠加图像填补图'); drawnow;
     end
 
-    %% gamma矫正
+    toc; % inpainting
+    
+    %% output
 
-%     C_V = uint8(linear2sRGB(C_V_inpaint_hole));
+%     Z_V = double(Z_V_inpaint_hole);
     C_V = uint8(C_V_inpaint_hole);
 
 end
