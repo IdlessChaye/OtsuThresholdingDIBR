@@ -41,10 +41,8 @@ function [C_V] = dibrAblation(layer_number, Znear, Zfar, C_L_O, C_R_O, Z_L_O, Z_
     tic; % refinement
     
     if is_dibr_do_refinement == true
-        if has_refinement
-            [Z_L_O, C_L_O] = getDepthColorRefinement(Z_L_O, C_L_O);
-            [Z_R_O, C_R_O] = getDepthColorRefinement(Z_R_O, C_R_O);
-        end
+        [Z_L_O, C_L_O] = getDepthColorRefinement(Z_L_O, C_L_O);
+        [Z_R_O, C_R_O] = getDepthColorRefinement(Z_R_O, C_R_O);
     end
     
     toc; % refinement

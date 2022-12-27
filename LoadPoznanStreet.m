@@ -11,6 +11,7 @@ depth_dir_name = 'Depth/';
 prc_dir_name = [pics_dir,refined_dir_name,color_dir_name];
 prd_dir_name = [pics_dir,refined_dir_name,depth_dir_name];
 pc_dir_name = [pics_dir, color_dir_name];
+pd_dir_name = [pics_dir, depth_dir_name];
 
 Znear = -34.506386;
 Zfar = -2760.510889;

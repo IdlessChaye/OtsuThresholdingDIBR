@@ -18,7 +18,6 @@ frame = 0;
 cam_L = 3;
 cam_R = 5;
 cam_V = 4;
-LoadBalletData;
 
 %% Albation Switch
 
@@ -29,6 +28,8 @@ for i = 0 : 1
         for k = 0 : 1
             for l = 0 : 1
                 ablation_switch = [i j k l];
+                is_dibr_do_refinement = i;
+                LoadBalletData;
 %% DIBR Algorithm
 
 [C_V] = dibrAblation(layer_number, Znear, Zfar, C_L_O, C_R_O, D_L_O, D_R_O, K_L, K_R, K_V, Rt_L, Rt_R, Rt_V, is_dibr_do_refinement, ablation_switch);
@@ -60,7 +61,6 @@ frame = 0;
 cam_L = 3;
 cam_R = 5;
 cam_V = 4;
-LoadBreakdancersData;
 
 %% Albation Switch
 
@@ -71,6 +71,8 @@ for i = 0 : 1
         for k = 0 : 1
             for l = 0 : 1
                 ablation_switch = [i j k l];
+                is_dibr_do_refinement = i;
+                LoadBreakdancersData;
 %% DIBR Algorithm
 
 [C_V] = dibrAblation(layer_number, Znear, Zfar, C_L_O, C_R_O, D_L_O, D_R_O, K_L, K_R, K_V, Rt_L, Rt_R, Rt_V, is_dibr_do_refinement, ablation_switch);
@@ -98,8 +100,6 @@ end
 
 LoadKendo;
 frame = 50;
-LoadKendoData;
-
 ablation_switch = [true true true true];
 
 for i = 0 : 1
@@ -107,6 +107,8 @@ for i = 0 : 1
         for k = 0 : 1
             for l = 0 : 1
                 ablation_switch = [i j k l];
+                is_dibr_do_refinement = i;
+                LoadKendoData;
 
 [C_V] = dibrAblation(layer_number, Znear, Zfar, C_L_O, C_R_O, D_L_O, D_R_O, K_L, K_R, K_V, Rt_L, Rt_R, Rt_V, is_dibr_do_refinement, ablation_switch);
 
@@ -126,7 +128,6 @@ end
 
 LoadPoznanStreet;
 frame = 50;
-LoadPoznanStreetData;
 
 ablation_switch = [true true true true];
 
@@ -135,6 +136,8 @@ for i = 0 : 1
         for k = 0 : 1
             for l = 0 : 1
                 ablation_switch = [i j k l];
+                is_dibr_do_refinement = i;
+                LoadPoznanStreetData;
 
 [C_V] = dibrAblation(layer_number, Znear, Zfar, C_L_O, C_R_O, D_L_O, D_R_O, K_L, K_R, K_V, Rt_L, Rt_R, Rt_V, is_dibr_do_refinement, ablation_switch);
 
