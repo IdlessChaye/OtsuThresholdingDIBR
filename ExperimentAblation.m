@@ -37,12 +37,12 @@ for i = 0 : 1
 
 % PSNR
 
-psnr = mPSNR(C_V,C_V_O,8);
+psnr = metrix_psnr(C_V,C_V_O);
 fprintf('psnr = %f\n',psnr);
 
 % SSIM
 
-ssim = mSSIM(C_V,C_V_O);
+ssim = metrix_ssim(C_V,C_V_O);
 fprintf('ssim = %f\n',ssim);
 
 % save result
@@ -79,12 +79,12 @@ for i = 0 : 1
 
 % PSNR
 
-psnr = mPSNR(C_V,C_V_O,8);
+psnr = metrix_psnr(C_V,C_V_O);
 fprintf('psnr = %f\n',psnr);
 
 % SSIM
 
-ssim = mSSIM(C_V,C_V_O);
+ssim = metrix_ssim(C_V,C_V_O);
 fprintf('ssim = %f\n',ssim);
 
 % save result
@@ -110,10 +110,10 @@ for i = 0 : 1
 
 [C_V] = dibrAblation(layer_number, Znear, Zfar, C_L_O, C_R_O, D_L_O, D_R_O, K_L, K_R, K_V, Rt_L, Rt_R, Rt_V, is_dibr_do_refinement, ablation_switch);
 
-psnr = mPSNR(C_V,C_V_O,8);
+psnr = metrix_psnr(C_V,C_V_O);
 fprintf('psnr = %f\n',psnr);
 
-ssim = mSSIM(C_V,C_V_O);
+ssim = metrix_ssim(C_V,C_V_O);
 fprintf('ssim = %f\n',ssim);
 
 imwrite(C_V, ['ExAbKendoResult',num2str(i),num2str(j),num2str(k),num2str(l), sprintf(' psnr %f ssim %f',psnr, ssim) , '.png']);
@@ -138,7 +138,7 @@ for i = 0 : 1
 
 [C_V] = dibrAblation(layer_number, Znear, Zfar, C_L_O, C_R_O, D_L_O, D_R_O, K_L, K_R, K_V, Rt_L, Rt_R, Rt_V, is_dibr_do_refinement, ablation_switch);
 
-psnr = metrix_psnr(C_V,C_V_O,8);
+psnr = metrix_psnr(C_V,C_V_O);
 fprintf('psnr = %f\n',psnr);
 
 ssim = metrix_ssim(C_V,C_V_O);
