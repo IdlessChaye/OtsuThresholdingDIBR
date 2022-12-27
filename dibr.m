@@ -1,27 +1,38 @@
-function [C_V] = dibr(layer_number, Znear, Zfar, C_L_O, C_R_O, Z_L_O, Z_R_O, K_L_O, K_R_O, K_V_O, Rt_L_O, Rt_R_O, Rt_V_O)
+function [C_V] = dibr(layer_number, Znear, Zfar, C_L_O, C_R_O, Z_L_O, Z_R_O, K_L_O, K_R_O, K_V_O, Rt_L_O, Rt_R_O, Rt_V_O, is_dibr_do_refinement)
 %     DIBR
 %
+%     is_dibr_do_refinement = true; % if not pre-treatment depth map and color map, set true
 %     layer_number = 3; % 分层数
 %     Znear = 0; % 视点最近距离，在数据集文件中设置
 %     Zfar = 0; % 视点最远距离，在数据集文件中设置
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-    is_show_image = true; % for debug
+    is_show_image = false; % for debug
     
     is_no_layered = layer_number == 1; % hack
     if is_no_layered
         layer_number = 2;
     end
     z_sign = Znear / abs(Znear); % hack
-
+    
     %% 算法参数
-
-%     factor_attenuation = 6; % 融合方程，指数衰减系数
-%     ratio_max_delta_dis = 1; % 融合方程，自适应最大深度差阈值的区间缩放百分比
     
     [H,W,~] = size(C_L_O);
+    
+	%% 深度细化 像素矫正
+    
+    tic; % refinement
+    
+    if is_dibr_do_refinement == true
+        [Z_L_O, C_L_O] = getDepthColorRefinement(Z_L_O, C_L_O);
+        [Z_R_O, C_R_O] = getDepthColorRefinement(Z_R_O, C_R_O);
+    end
+    
+    toc; % refinement
 
-    %% 亮度矫正 % + gamma矫正
+    %% 亮度矫正
+    
+    tic; % HSV
     
     % 亮度矫正 消除鬼影 提升psnr
     hsv_L_O = rgb2hsv(C_L_O);
@@ -31,12 +42,12 @@ function [C_V] = dibr(layer_number, Znear, Zfar, C_L_O, C_R_O, Z_L_O, Z_R_O, K_L
     hsv_L_O(:,:,3) = hsv_L_O(:,:,3) ./ light_L_O .* light_R_O;
     C_L_O = hsv2rgb(hsv_L_O);
 
-%     % gamma矫正
-%     C_L_O = sRGB2linear(C_L_O);
-%     C_R_O = sRGB2linear(C_R_O);
+    toc; % HSV
 
     %% 获取双路原视点的深度分层阈值 分层，但效果不明显，只是理论上可以将前后景的物体分层
 
+    tic; % layered
+    
     layer_thresh_L = multithresh(Z_L_O, layer_number - 1);
     layer_thresh_R = multithresh(Z_R_O, layer_number - 1);
 
@@ -312,9 +323,13 @@ function [C_V] = dibr(layer_number, Znear, Zfar, C_L_O, C_R_O, Z_L_O, Z_R_O, K_L
         figure;imshow(Z_V_overlay); title('叠加深度图'); drawnow;
         figure;imshow(uint8(linear2sRGB(C_V_overlay))); title('叠加颜色图'); drawnow;
     end
+    
+    toc; % layered
 
     %% 对新视点的颜色图进行中值滤波和图像填补
 
+    tic; % inpainting
+    
     % 中值滤波
     w_radius = 2;
     C_V_inpaint_median = cat(3,medfilt2(C_V_overlay(:,:,1),[2 * w_radius + 1, 2 * w_radius + 1]),medfilt2(C_V_overlay(:,:,2),[2 * w_radius + 1, 2 * w_radius + 1]),medfilt2(C_V_overlay(:,:,3),[2 * w_radius + 1, 2 * w_radius + 1]));
@@ -327,33 +342,6 @@ function [C_V] = dibr(layer_number, Znear, Zfar, C_L_O, C_R_O, Z_L_O, Z_R_O, K_L
 
     
     % 图像填补
-%     % 背景图像
-%     Z_V_background = zeros(H, W, 1);
-%     C_V_background = zeros(H, W, 3);
-%     i_iter = 2 : layer_number;
-%     if z_sign < 0
-%         i_iter = layer_number - 1 : -1 : 1;
-%     end
-%     for i = i_iter % 排除前景
-%         for u = 1 : W
-%             for v = 1 : H
-%                 z = Z_V_inpaints{i}(v,u,1);
-%                 if z == 0
-%                     continue;
-%                 end
-%                 if Z_V_background(v, u, 1) == 0
-%                     Z_V_background(v,u,1) = z;
-%                     C_V_background(v,u,:) = C_V_inpaints{i}(v,u,:);
-%                 end
-%             end
-%         end
-%     end
-% 
-%     if is_show_image
-%         % figure;imshow(Z_V_background);
-%         figure;imshow(uint8(linear2sRGB(C_V_background))); title('叠加背景图'); drawnow;
-%     end
-    
     % 如果点不在视点边缘，假设造成空洞的原因是因为前景遮挡，根据背景图像进行图像填补
     % 如果点在视点边缘，假设造成空洞的原因是因为视点边缘信息缺失，根据叠加图像进行图像填补
     
@@ -379,7 +367,9 @@ function [C_V] = dibr(layer_number, Znear, Zfar, C_L_O, C_R_O, Z_L_O, Z_R_O, K_L
         figure;imshow(uint8(linear2sRGB(C_V_inpaint_hole))); title('叠加图像填补图'); drawnow;
     end
 
-    %% gamma矫正 没用
+    toc; % inpainting
+    
+    %% output
 
 %     Z_V = double(Z_V_inpaint_hole);
     C_V = uint8(C_V_inpaint_hole);

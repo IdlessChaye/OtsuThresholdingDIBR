@@ -12,6 +12,9 @@ function [D, C] = getDepthColorRefinement(D_O, C_O)
 
 is_show_figure = false;
 
+z_sign = D_O(1) / abs(D_O(1));
+D_O = D_O * z_sign;
+
 if is_show_figure
     figure;
     imshow(uint8(D_O));
@@ -69,5 +72,6 @@ if is_show_figure
 end
 
 C = C_output;
+D = D * z_sign;
 
 end

@@ -1,5 +1,9 @@
+% is_dibr_do_refinement = false;
+
 pics_dir = 'PoznanStreet/';
-depthColorRefinement(pics_dir); % 颜色图和深度图滤波 Color Depth Refinement
+if is_dibr_do_refinement == false
+    depthColorRefinement(pics_dir); % 颜色图和深度图滤波 Color Depth Refinement
+end
 
 refined_dir_name = 'DepthColorRefinement/';
 color_dir_name = 'Color/';

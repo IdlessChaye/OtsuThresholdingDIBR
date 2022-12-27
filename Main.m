@@ -6,6 +6,7 @@ clc;
 
 %% Params
 
+is_dibr_do_refinement = false;
 layer_number = 3; % 分层数
 Zfar = 0; % 视点最远距离，在数据集文件中设置
 Znear = 0; % 视点最近距离，在数据集文件中设置
@@ -41,7 +42,7 @@ LoadSharkData;
 
 %% DIBR Algorithm
 figure; imshow(C_V_O); title('原新视点图像'); drawnow;
-[C_V] = dibr(layer_number, Znear, Zfar, C_L_O, C_R_O, D_L_O, D_R_O, K_L, K_R, K_V, Rt_L, Rt_R, Rt_V);
+[C_V] = dibr(layer_number, Znear, Zfar, C_L_O, C_R_O, D_L_O, D_R_O, K_L, K_R, K_V, Rt_L, Rt_R, Rt_V, is_dibr_do_refinement);
 
 %% Experiments
 
