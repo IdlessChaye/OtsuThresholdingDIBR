@@ -10,7 +10,7 @@ function Z_inpaint_hole = getDepthPixelInpaintHole3(Z_overlay)
     % to right
     for i = 1 : H
         d = -1;
-        z = zeros(1,3);
+        z = 0;
         for j = 1 : W
             d = d + 1;
             if sum(Z_overlay(i,j)) == 0
@@ -29,7 +29,7 @@ function Z_inpaint_hole = getDepthPixelInpaintHole3(Z_overlay)
     % to left
     for i = 1 : H
         d = -1;
-        z = zeros(1,3);
+        z = 0;
         for j = W : -1 : 1
             d = d + 1;
             if sum(Z_overlay(i,j)) == 0
@@ -48,7 +48,7 @@ function Z_inpaint_hole = getDepthPixelInpaintHole3(Z_overlay)
     % down
     for j = 1 : W
         d = -1;
-        z = zeros(1,3);
+        z = 0;
         for i = 1 : H
             d = d + 1;
             if sum(Z_overlay(i,j)) == 0
@@ -67,7 +67,7 @@ function Z_inpaint_hole = getDepthPixelInpaintHole3(Z_overlay)
     % up
     for j = 1 : W
         d = -1;
-        z = zeros(1,3);
+        z = 0;
         for i = H : -1 : 1
             d = d + 1;
             if sum(Z_overlay(i,j)) == 0

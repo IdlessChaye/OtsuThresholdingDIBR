@@ -284,12 +284,13 @@ function [C_V] = dibr(layer_number, Znear, Zfar, C_L_O, C_R_O, Z_L_O, Z_R_O, K_L
     Z_V_inpaints = cell([1, layer_number]); 
     C_V_inpaints = cell([1, layer_number]); 
 
-    % É¸Ñ¡ÖÐÖµÂË²¨
+    % É¸Ñ¡¾ùÖµÂË²¨
     w_select_radius = 5;
     w_calc_radius = 2;
     for i = 1 : layer_number
         if is_no_layered == false
-            [C_V_inpaints{i}, Z_V_inpaints{i}] = getColorSwitchingDepthMedianFilter(C_Vs{i}, Z_Vs{i}, w_select_radius, w_calc_radius);
+            % [C_V_inpaints{i}, Z_V_inpaints{i}] = getColorSwitchingDepthMedianFilter(C_Vs{i}, Z_Vs{i}, w_select_radius, w_calc_radius);
+            [C_V_inpaints{i}, Z_V_inpaints{i}] = getColorSwitchingDepthMeanFilter(C_Vs{i}, Z_Vs{i}, w_select_radius, w_calc_radius);
         else
             C_V_inpaints{i} = C_Vs{i};
             Z_V_inpaints{i} = Z_Vs{i};     
@@ -345,7 +346,7 @@ function [C_V] = dibr(layer_number, Znear, Zfar, C_L_O, C_R_O, Z_L_O, Z_R_O, K_L
     % ÖÐÖµÂË²¨
     w_radius = 2;
     C_V_inpaint_median = cat(3,medfilt2(C_V_overlay(:,:,1),[2 * w_radius + 1, 2 * w_radius + 1]),medfilt2(C_V_overlay(:,:,2),[2 * w_radius + 1, 2 * w_radius + 1]),medfilt2(C_V_overlay(:,:,3),[2 * w_radius + 1, 2 * w_radius + 1]));
-%     Z_V_inpaint_median = medfilt2(Z_V_overlay(:,:,1),[2 * w_radius + 1, 2 * w_radius + 1]);
+	Z_V_inpaint_median = medfilt2(Z_V_overlay(:,:,1),[2 * w_radius + 1, 2 * w_radius + 1]);
 
     if is_show_image
         % figure;imshow(Z_V_inpaint_median);
@@ -375,10 +376,11 @@ function [C_V] = dibr(layer_number, Znear, Zfar, C_L_O, C_R_O, Z_L_O, Z_R_O, K_L
     
 %     C_V_inpaint_hole = getColorPixelInpaintHole2(C_V_inpaint_median, C_V_background);
     
-%     Z_V_inpaint_hole = getDepthPixelInpaintHole3(Z_V_inpaint_median);
+	Z_V_inpaint_hole = getDepthPixelInpaintHole3(Z_V_inpaint_median);
     C_V_inpaint_hole = getColorPixelInpaintHole3(C_V_inpaint_median);
 
     if is_show_image
+        figure;imshow(uint8(Z_V_inpaint_hole)); title('µþ¼ÓÍ¼ÏñÌî²¹Éî¶ÈÍ¼'); drawnow;
         figure;imshow(uint8(linear2sRGB(C_V_inpaint_hole))); title('µþ¼ÓÍ¼ÏñÌî²¹Í¼'); drawnow;
     end
     
@@ -388,10 +390,26 @@ function [C_V] = dibr(layer_number, Znear, Zfar, C_L_O, C_R_O, Z_L_O, Z_R_O, K_L
     t4 = clock; % inpainting
     fprintf('all inpainting time:\n%f Ãë¡£\n', etime(t4,t3));
     
+    %% Edge Blur
+    
+    tic; % edge fuse
+    
+    Z_edge = edge(Z_V_inpaint_hole, 'canny');
+    SE_edge_dilate = strel('square', 2);
+    Z_edge_dilate = imdilate(Z_edge, SE_edge_dilate);
+    C_V_edge_fuse = getColorPixelMeanByEdge(C_V_inpaint_hole, Z_edge_dilate, 2);
+    
+    if is_show_image
+        figure;imshow(uint8(linear2sRGB(C_V_edge_fuse))); title('Ìî²¹±ßÔµÄ£ºýÍ¼'); drawnow;
+    end
+    
+    disp('Edge Blur time:');
+    toc; % Edge Blur
+    
     %% output
-
+    
 %     Z_V = double(Z_V_inpaint_hole);
-    C_V = uint8(C_V_inpaint_hole);
+    C_V = uint8(C_V_edge_fuse);
     
     t2 = clock; % dibr
     fprintf('all dibr time:\n%f Ãë¡£\n', etime(t2,t1));
