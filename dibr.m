@@ -33,6 +33,20 @@ function [C_V] = dibr(layer_number, Znear, Zfar, C_L_O, C_R_O, Z_L_O, Z_R_O, K_L
     disp('refinement time:');
     toc; % refinement
 
+    
+    %% 去除边框像素影响
+    
+    tic; % edge removal
+    
+    edge_rage = 2;
+    Z_L_O(1:1+edge_rage,:,:) = 0; Z_L_O(H-edge_rage:H,:,:) = 0; Z_L_O(:,1:1+edge_rage,:) = 0; Z_L_O(:,W-edge_rage:W,:) = 0;
+    C_L_O(1:1+edge_rage,:,:) = 0; C_L_O(H-edge_rage:H,:,:) = 0; C_L_O(:,1:1+edge_rage,:) = 0; C_L_O(:,W-edge_rage:W,:) = 0;
+    Z_R_O(1:1+edge_rage,:,:) = 0; Z_R_O(H-edge_rage:H,:,:) = 0; Z_R_O(:,1:1+edge_rage,:) = 0; Z_R_O(:,W-edge_rage:W,:) = 0;
+    C_R_O(1:1+edge_rage,:,:) = 0; C_R_O(H-edge_rage:H,:,:) = 0; C_R_O(:,1:1+edge_rage,:) = 0; C_R_O(:,W-edge_rage:W,:) = 0;
+    
+	disp('edge removal:');
+    toc; % edge removal
+    
     %% 亮度矫正
     
     tic; % HSV
@@ -52,8 +66,8 @@ function [C_V] = dibr(layer_number, Znear, Zfar, C_L_O, C_R_O, Z_L_O, Z_R_O, K_L
 
     tic; % layered
     
-    layer_thresh_L = multithresh(Z_L_O, layer_number - 1);
-    layer_thresh_R = multithresh(Z_R_O, layer_number - 1);
+    layer_thresh_L = multithresh(Z_L_O(2+edge_rage:H-1-edge_rage, 2+edge_rage:W-1-edge_rage, :), layer_number - 1);
+    layer_thresh_R = multithresh(Z_R_O(2+edge_rage:H-1-edge_rage, 2+edge_rage:W-1-edge_rage, :), layer_number - 1);
 
     %% 计算新视点的深度分层阈值
 
@@ -347,10 +361,14 @@ function [C_V] = dibr(layer_number, Znear, Zfar, C_L_O, C_R_O, Z_L_O, Z_R_O, K_L
     w_radius = 2;
     C_V_inpaint_median = cat(3,medfilt2(C_V_overlay(:,:,1),[2 * w_radius + 1, 2 * w_radius + 1]),medfilt2(C_V_overlay(:,:,2),[2 * w_radius + 1, 2 * w_radius + 1]),medfilt2(C_V_overlay(:,:,3),[2 * w_radius + 1, 2 * w_radius + 1]));
 	Z_V_inpaint_median = medfilt2(Z_V_overlay(:,:,1),[2 * w_radius + 1, 2 * w_radius + 1]);
+    
+%     Z_edge_dilate = imdilate(edge(Z_V_overlay, 'canny'), strel('square', 2));
+%     C_V_inpaint_median = getColorPixelMedianByEdge(C_V_overlay, Z_edge_dilate, 2);
+%     Z_V_inpaint_median = getDepthPixelMedianByEdge(Z_V_overlay, Z_edge_dilate, 2);
 
     if is_show_image
-        % figure;imshow(Z_V_inpaint_median);
-        figure;imshow(uint8(linear2sRGB(C_V_inpaint_median))); title('叠加中值滤波图'); drawnow;
+%         figure;imshow(Z_V_inpaint_median); title('叠加中值滤波深度图'); drawnow;
+        figure;imshow(uint8(linear2sRGB(C_V_inpaint_median))); title('叠加中值滤波颜色图'); drawnow;
     end
     
     disp('median inpainting time:');
@@ -362,22 +380,28 @@ function [C_V] = dibr(layer_number, Znear, Zfar, C_L_O, C_R_O, Z_L_O, Z_R_O, K_L
     % 如果点不在视点边缘，假设造成空洞的原因是因为前景遮挡，根据背景图像进行图像填补
     % 如果点在视点边缘，假设造成空洞的原因是因为视点边缘信息缺失，根据叠加图像进行图像填补
     
-%     C_V_inpaint_hole = C_V_inpaint_median;
-%     for i = 1 : H
-%         for j = 1 : W
-%             if sum(C_V_inpaint_median(i,j,:)) ~= 0
-%                 continue;
-%             end
-% 
-%             c_pixel = getColorPixelInpaintHole(C_V_inpaint_median, C_V_background, i, j);
-%             C_V_inpaint_hole(i,j,:) = c_pixel;
-%         end
-%     end
+    Z_V_background = zeros(H, W, 1);
+    C_V_background = zeros(H, W, 3);
+    for i = 2 : layer_number
+        for u = 1 : W
+            for v = 1 : H
+                z = Z_V_inpaints{i}(v,u,1);
+                if z == 0
+                    continue;
+                end
+                if Z_V_background(v, u, 1) == 0
+                    Z_V_background(v,u,1) = z;
+                    C_V_background(v,u,:) = C_V_inpaints{i}(v,u,:);
+                end
+            end
+        end
+    end
     
-%     C_V_inpaint_hole = getColorPixelInpaintHole2(C_V_inpaint_median, C_V_background);
+    Z_V_inpaint_hole = getDepthPixelInpaintHole2(Z_V_inpaint_median, Z_V_background);
+    C_V_inpaint_hole = getColorPixelInpaintHole2(C_V_inpaint_median, C_V_background);
     
-	Z_V_inpaint_hole = getDepthPixelInpaintHole3(Z_V_inpaint_median);
-    C_V_inpaint_hole = getColorPixelInpaintHole3(C_V_inpaint_median);
+	%Z_V_inpaint_hole = getDepthPixelInpaintHole3(Z_V_inpaint_median);
+    %C_V_inpaint_hole = getColorPixelInpaintHole3(C_V_inpaint_median);
 
     if is_show_image
         figure;imshow(uint8(Z_V_inpaint_hole)); title('叠加图像填补深度图'); drawnow;
@@ -394,9 +418,7 @@ function [C_V] = dibr(layer_number, Znear, Zfar, C_L_O, C_R_O, Z_L_O, Z_R_O, K_L
     
     tic; % edge fuse
     
-    Z_edge = edge(Z_V_inpaint_hole, 'canny');
-    SE_edge_dilate = strel('square', 2);
-    Z_edge_dilate = imdilate(Z_edge, SE_edge_dilate);
+    Z_edge_dilate = imdilate(edge(Z_V_inpaint_hole, 'canny'), strel('square', 2));
     C_V_edge_fuse = getColorPixelMeanByEdge(C_V_inpaint_hole, Z_edge_dilate, 2);
     
     if is_show_image

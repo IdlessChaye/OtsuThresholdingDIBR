@@ -13,7 +13,7 @@ function C_inpaint_hole = getColorPixelInpaintHole3(C_overlay)
         c = zeros(1,3);
         for j = 1 : W
             d = d + 1;
-            if sum(C_overlay(i,j)) == 0
+            if sum(C_overlay(i,j,:)) == 0
                 hole_mark(i,j) = 1;
                 if isempty(A{i,j})
                     A{i,j} = data;
@@ -22,7 +22,7 @@ function C_inpaint_hole = getColorPixelInpaintHole3(C_overlay)
                 A{i,j}(1,4) = d;
             else
                 d = 0;
-                c = C_overlay(i,j);
+                c = C_overlay(i,j,:);
             end
         end
     end
@@ -32,7 +32,7 @@ function C_inpaint_hole = getColorPixelInpaintHole3(C_overlay)
         c = zeros(1,3);
         for j = W : -1 : 1
             d = d + 1;
-            if sum(C_overlay(i,j)) == 0
+            if sum(C_overlay(i,j,:)) == 0
                 hole_mark(i,j) = 1;
                 if isempty(A{i,j})
                     A{i,j} = data;
@@ -41,7 +41,7 @@ function C_inpaint_hole = getColorPixelInpaintHole3(C_overlay)
                 A{i,j}(2,4) = d;
             else
                 d = 0;
-                c = C_overlay(i,j);
+                c = C_overlay(i,j,:);
             end
         end
     end
@@ -51,7 +51,7 @@ function C_inpaint_hole = getColorPixelInpaintHole3(C_overlay)
         c = zeros(1,3);
         for i = 1 : H
             d = d + 1;
-            if sum(C_overlay(i,j)) == 0
+            if sum(C_overlay(i,j,:)) == 0
                 hole_mark(i,j) = 1;
                 if isempty(A{i,j})
                     A{i,j} = data;
@@ -60,7 +60,7 @@ function C_inpaint_hole = getColorPixelInpaintHole3(C_overlay)
                 A{i,j}(3,4) = d;
             else
                 d = 0;
-                c = C_overlay(i,j);
+                c = C_overlay(i,j,:);
             end
         end
     end
@@ -70,7 +70,7 @@ function C_inpaint_hole = getColorPixelInpaintHole3(C_overlay)
         c = zeros(1,3);
         for i = H : -1 : 1
             d = d + 1;
-            if sum(C_overlay(i,j)) == 0
+            if sum(C_overlay(i,j,:)) == 0
                 hole_mark(i,j) = 1;
                 if isempty(A{i,j})
                     A{i,j} = data;
@@ -79,7 +79,7 @@ function C_inpaint_hole = getColorPixelInpaintHole3(C_overlay)
                 A{i,j}(4,4) = d;
             else
                 d = 0;
-                c = C_overlay(i,j);
+                c = C_overlay(i,j,:);
             end
         end
     end
