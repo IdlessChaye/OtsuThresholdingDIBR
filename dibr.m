@@ -52,12 +52,7 @@ function [C_V] = dibr(layer_number, Znear, Zfar, C_L_O, C_R_O, Z_L_O, Z_R_O, K_L
     tic; % HSV
     
     % 亮度矫正 消除鬼影 提升psnr
-    hsv_L_O = rgb2hsv(C_L_O);
-    hsv_R_O = rgb2hsv(C_R_O);
-    light_L_O = sum(sum(hsv_L_O(:,:,3))) / H / W;
-    light_R_O = sum(sum(hsv_R_O(:,:,3))) / H / W;
-    hsv_L_O(:,:,3) = hsv_L_O(:,:,3) ./ light_L_O .* light_R_O;
-    C_L_O = hsv2rgb(hsv_L_O);
+    [C_L_O,C_R_O] = getColorCorrected(C_L_O,C_R_O);
 
     disp('HSV time:');
     toc; % HSV
@@ -361,6 +356,9 @@ function [C_V] = dibr(layer_number, Znear, Zfar, C_L_O, C_R_O, Z_L_O, Z_R_O, K_L
     w_radius = 2;
     C_V_inpaint_median = cat(3,medfilt2(C_V_overlay(:,:,1),[2 * w_radius + 1, 2 * w_radius + 1]),medfilt2(C_V_overlay(:,:,2),[2 * w_radius + 1, 2 * w_radius + 1]),medfilt2(C_V_overlay(:,:,3),[2 * w_radius + 1, 2 * w_radius + 1]));
 	Z_V_inpaint_median = medfilt2(Z_V_overlay(:,:,1),[2 * w_radius + 1, 2 * w_radius + 1]);
+    
+%     C_V_inpaint_median = C_V_overlay;
+%     Z_V_inpaint_median = Z_V_overlay;
     
 %     Z_edge_dilate = imdilate(edge(Z_V_overlay, 'canny'), strel('square', 2));
 %     C_V_inpaint_median = getColorPixelMedianByEdge(C_V_overlay, Z_edge_dilate, 2);
