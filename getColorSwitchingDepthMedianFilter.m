@@ -13,9 +13,9 @@ function [C, D] = getColorSwitchingDepthMedianFilter(C_O, D_O, w_select_radius, 
     for i = 1 : H
         for j = 1 : W
             d = D_O(i,j);
-            if d ~= 0
-                continue;
-            end
+%             if d ~= 0
+%                 continue;
+%             end
             
             iMin = max(i-w_select_radius,1);
             iMax = min(i+w_select_radius,H);

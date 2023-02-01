@@ -93,7 +93,7 @@ function Z_inpaint_hole = getDepthPixelInpaintHole3(Z_overlay)
             da = A{i,j};
             zs = da(:, 1);
             ds = da(:, 2);
-            index = sum(zs,2) > 0;
+            index = sum(zs,2) ~= 0;
             zs = zs(index);
             ds = ds(index);
             if sum(ds) == 0

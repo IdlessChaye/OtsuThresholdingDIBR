@@ -174,7 +174,7 @@ function Z_inpaint_hole = getDepthPixelInpaintHole2(Z_overlay, Z_background)
                 zs = da(:, 3);
                 ds = da(:, 4);
             end
-            index = sum(zs,2) > 0;
+            index = sum(zs,2) ~= 0;
             zs = zs(index);
             ds = ds(index);
             if sum(ds) == 0
