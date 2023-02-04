@@ -8,19 +8,19 @@ addpath('./PSNR_SSIM_in_matlab');
 
 %% Params
 
-is_dibr_do_refinement = false;
+is_dibr_do_refinement = true;
 layer_number = 3; % 分层数
 Zfar = 0; % 视点最远距离，在数据集文件中设置
 Znear = 0; % 视点最近距离，在数据集文件中设置
 
-% LoadBallet; % 数据集，Ballet
-% % LoadBreakdancers; % 数据集，Breakdancers
-% frame = 0;
-% cam_L = 3;
-% cam_R = 5;
-% cam_V = 4;
-% LoadBalletData;
-% % LoadBreakdancersData;
+LoadBallet; % 数据集，Ballet
+% LoadBreakdancers; % 数据集，Breakdancers
+frame = 14;
+cam_L = 3;
+cam_R = 5;
+cam_V = 4;
+LoadBalletData;
+% LoadBreakdancersData;
 
 % LoadKendo;
 % frame = 50;
@@ -30,9 +30,9 @@ Znear = 0; % 视点最近距离，在数据集文件中设置
 % frame = 50;
 % LoadBalloonsData;
 
-LoadShark;
-frame = 50;
-LoadSharkData;
+% LoadShark;
+% frame = 50;
+% LoadSharkData;
 
 % LoadPoznanStreet;
 % frame = 50;
