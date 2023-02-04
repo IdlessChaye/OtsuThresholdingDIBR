@@ -8,6 +8,7 @@ addpath('./PSNR_SSIM_in_matlab');
 
 %% Params
 
+ablation_switch = [0 0 0 0];
 is_dibr_do_refinement = false;
 layer_number = 3; % 分层数
 Zfar = 0; % 视点最远距离，在数据集文件中设置
@@ -22,29 +23,9 @@ cam_V = 4;
 LoadBalletData;
 % LoadBreakdancersData;
 
-% LoadKendo;
-% frame = 50;
-% LoadKendoData;
-
-% LoadBalloons;
-% frame = 50;
-% LoadBalloonsData;
-
-% LoadShark;
-% frame = 50;
-% LoadSharkData;
-
-% LoadPoznanStreet;
-% frame = 50;
-% LoadPoznanStreetData;
-
-% LoadPoznanHall2;
-% frame = 50;
-% LoadPoznanHall2Data;
-
 %% DIBR Algorithm
-%figure; imshow(C_V_O); title('原新视点图像'); drawnow;
-[C_V] = dibr(layer_number, C_L_O, C_R_O, D_L_O, D_R_O, K_L, K_R, K_V, Rt_L, Rt_R, Rt_V, Znear / abs(Znear), is_dibr_do_refinement);
+
+[C_V] = dibrAblation(layer_number, C_L_O, C_R_O, D_L_O, D_R_O, K_L, K_R, K_V, Rt_L, Rt_R, Rt_V, Znear / abs(Znear), is_dibr_do_refinement, ablation_switch);
 
 %% Experiments
 

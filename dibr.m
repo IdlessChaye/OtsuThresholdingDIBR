@@ -36,8 +36,16 @@ function [C_V] = dibr(layer_number, C_L_O, C_R_O, Z_L_O, Z_R_O, K_L_O, K_R_O, K_
     
     tic; % HSV
     
+    if is_show_image
+        figure;imshow(uint8(C_L_O)); title('颜色校正之前'); drawnow;
+    end
+    
     % 亮度矫正 消除鬼影 提升psnr
     [C_L_O,C_R_O] = getColorCorrected(C_L_O,C_R_O);
+    
+    if is_show_image
+        figure;imshow(uint8(C_L_O)); title('颜色校正之后'); drawnow;
+    end
 
     disp('1. 颜色校正:');
     toc; % HSV
@@ -295,9 +303,9 @@ function [C_V] = dibr(layer_number, C_L_O, C_R_O, Z_L_O, Z_R_O, K_L_O, K_R_O, K_
     end
 
     if is_show_image
-        % for k = 1 : layer_number
-        %     figure;imshow(Z_V_inpaints{k});
-        % end
+        for k = 1 : layer_number
+            figure;imshow(Z_V_inpaints{k});
+        end
         for k = 1 : layer_number
             figure;imshow(uint8(linear2sRGB(C_V_inpaints{k}))); title([num2str(k),'层筛选中值滤波']); drawnow;
         end
