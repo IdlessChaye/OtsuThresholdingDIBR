@@ -8,7 +8,7 @@ addpath('./PSNR_SSIM_in_matlab');
 
 %% Params
 
-ablation_switch = [0 0 0 0];
+ablation_switch = [0 1 0 0];
 is_dibr_do_refinement = false;
 layer_number = 3; % 分层数
 Zfar = 0; % 视点最远距离，在数据集文件中设置
@@ -47,3 +47,5 @@ fprintf('psnr = %f\n',psnr);
 
 ssim = metrix_ssim(C_V,C_V_O); 
 fprintf('ssim = %f\n',ssim);
+
+imwrite(C_V, ['2', sprintf(' psnr %f ssim %f',psnr, ssim) , '.png']);
