@@ -9,7 +9,7 @@ function [C_V] = dibr(layer_number, C_L_O, C_R_O, Z_L_O, Z_R_O, K_L_O, K_R_O, K_
 
     t1 = clock; % dibr
 
-    is_show_image = false; % for debug
+    is_show_image = true; % for debug
     
     is_no_layered = layer_number == 1; % hack
     if is_no_layered

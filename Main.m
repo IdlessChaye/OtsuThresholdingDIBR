@@ -13,16 +13,18 @@ layer_number = 3; % 分层数
 Zfar = 0; % 视点最远距离，在数据集文件中设置
 Znear = 0; % 视点最近距离，在数据集文件中设置
 
-LoadClassroom;
-%LoadBallet; % 数据集，Ballet
+%LoadGuo;
+%LoadClassroom;
+LoadBallet; % 数据集，Ballet
 %LoadBreakdancers; % 数据集，Breakdancers
 %LoadBallet2; % COLMAP数据集，Ballet
 frame = 0;
-cam_L = 2;
-cam_R = 10;
-cam_V = 8;
-LoadClassroomData;
-%LoadBalletData;
+cam_L = 3;
+cam_R = 5;
+cam_V = 4;
+%LoadGuoData;
+%LoadClassroomData;
+LoadBalletData;
 %LoadBreakdancersData;
 %LoadBalletData2;
 
