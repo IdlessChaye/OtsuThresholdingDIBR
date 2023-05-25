@@ -13,14 +13,18 @@ layer_number = 3; % 分层数
 Zfar = 0; % 视点最远距离，在数据集文件中设置
 Znear = 0; % 视点最近距离，在数据集文件中设置
 
-LoadBallet; % 数据集，Ballet
-% LoadBreakdancers; % 数据集，Breakdancers
+LoadClassroom;
+%LoadBallet; % 数据集，Ballet
+%LoadBreakdancers; % 数据集，Breakdancers
+%LoadBallet2; % COLMAP数据集，Ballet
 frame = 0;
-cam_L = 3;
-cam_R = 5;
-cam_V = 4;
-LoadBalletData;
-% LoadBreakdancersData;
+cam_L = 2;
+cam_R = 10;
+cam_V = 8;
+LoadClassroomData;
+%LoadBalletData;
+%LoadBreakdancersData;
+%LoadBalletData2;
 
 % LoadKendo;
 % frame = 50;
@@ -66,3 +70,5 @@ fprintf('psnr = %f\n',psnr);
 
 ssim = metrix_ssim(C_V,C_V_O); 
 fprintf('ssim = %f\n',ssim);
+
+%imwrite(C_V, 'classroom.jpg')
